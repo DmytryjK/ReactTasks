@@ -1,7 +1,7 @@
-import {Component, Fragment} from 'react';
-import MarvelService from '../../services/MarvelService';
+import { Component } from 'react';
 import PropTypes from 'prop-types';
 
+import MarvelService from '../../services/MarvelService';
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
 import Skeleton from '../skeleton/Skeleton';
@@ -13,8 +13,7 @@ class CharInfo extends Component {
     state = {
         char: null,
         loading: false,
-        error: false,
-        isImageFound: true
+        error: false
     }
 
     marvelService = new MarvelService();
@@ -23,19 +22,11 @@ class CharInfo extends Component {
         this.updateChar();
         this.fixedComponentOnScroll();
     }
-    
-    componentDidUpdate(prevProps) {
-        if (this.props.charId !== prevProps.charId) {
-            this.updateChar(); 
-        }
-    }
 
-    componentDidCatch(err, info) {
-        console.log(err, info);
-        
-        this.setState({
-            error: true
-        });
+    componentDidUpdate(prevProps){
+        if (this.props.charId !== prevProps.charId) {
+            this.updateChar();
+        }
     }
 
     fixedComponentOnScroll = () => {
@@ -57,14 +48,11 @@ class CharInfo extends Component {
 
     updateChar = () => {
         const {charId} = this.props;
-        
         if (!charId) {
-            return
+            return;
         }
 
-        this.setState({
-            loading: true,
-        });
+        this.onCharLoading();
 
         this.marvelService
             .getCharacter(charId)
@@ -73,29 +61,32 @@ class CharInfo extends Component {
     }
 
     onCharLoaded = (char) => {
-
         this.setState({
             char, 
-            loading: false,
-            error: false,
-            isImageFound: char.thumbnail.indexOf('image_not_available') > -1 ? false : true
-        });
+            loading: false
+        })
+    }
+
+    onCharLoading = () => {
+        this.setState({
+            loading: true
+        })
     }
 
     onError = () => {
         this.setState({
             loading: false,
             error: true
-        });
+        })
     }
 
     render() {
-        const {char, loading, error, isImageFound} = this.state;
-        const skeleton = (char || loading || error) ? null : <Skeleton/>;
+        const {char, loading, error} = this.state;
 
+        const skeleton = char || loading || error ? null : <Skeleton/>;
         const errorMessage = error ? <ErrorMessage/> : null;
         const spinner = loading ? <Spinner/> : null;
-        const content = !(loading || error || !char) ? <View char={char} isImageFound={isImageFound}/> : null;
+        const content = !(loading || error || !char) ? <View char={char}/> : null;
 
         return (
             <div className="char__info">
@@ -108,14 +99,18 @@ class CharInfo extends Component {
     }
 }
 
-const View = ({char, isImageFound}) => {
+const View = ({char}) => {
     const {name, description, thumbnail, homepage, wiki, comics} = char;
-    const imageStyle = (isImageFound ? null : {objectFit: "contain"});
 
-    return(
-        <Fragment>
+    let imgStyle = {'objectFit' : 'cover'};
+    if (thumbnail === 'http://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available.jpg') {
+        imgStyle = {'objectFit' : 'contain'};
+    }
+
+    return (
+        <>
             <div className="char__basics">
-                <img style={imageStyle} src={thumbnail} alt={name}/>
+                <img src={thumbnail} alt={name} style={imgStyle}/>
                 <div>
                     <div className="char__info-name">{name}</div>
                     <div className="char__btns">
@@ -133,35 +128,25 @@ const View = ({char, isImageFound}) => {
             </div>
             <div className="char__comics">Comics:</div>
             <ul className="char__comics-list">
-                {/* {listComics}  */}
-                <ComicsList comics={comics}/>
+                {comics.length > 0 ? null : 'There is no comics with this character'}
+                {
+                    comics.map((item, i) => {
+                        // eslint-disable-next-line
+                        if (i > 9) return;
+                        return (
+                            <li key={i} className="char__comics-item">
+                                {item.name}
+                            </li>
+                        )
+                    })
+                }                
             </ul>
-        </Fragment>
+        </>
     )
 }
 
-const ComicsList = ({comics}) => {
-    if (comics.length > 0) { 
-        const list = comics.map((item, index) => {
-
-            if (index > 9) return; //ограничиваем кол-во вывода комиксов до 10-ти
-            return (
-                <li key={index} className="char__comics-item">
-                    <a className="char__comics-link" href={item.resourceURI}>
-                        {item.name}
-                    </a>
-                </li>
-            )
-        })
-
-        return list;
-    } else {
-        return <p>There is no comics with this character :(</p>
-    }
-}
-
 CharInfo.propTypes = {
-    charId: PropTypes.number 
+    charId: PropTypes.number
 }
 
 export default CharInfo;
