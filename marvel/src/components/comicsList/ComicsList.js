@@ -3,6 +3,7 @@ import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
 import useMarvelService from '../../services/MarvelService';
 import {useEffect, useState} from 'react';
+import {Link} from 'react-router-dom';
 
 const ComicsList = () => {
     const [comics, setComics] = useState([]);
@@ -27,14 +28,14 @@ const ComicsList = () => {
     }   
 
     const renderComics = (comicsData) => {
-        const comics = comicsData.map(comic => {
+        const comics = comicsData.map((comic, i) => {
             return (
-                <li key={comic.id} className="comics__item">
-                    <a href={comic.details} target="_blank">
+                <li key={i} className="comics__item">
+                    <Link to={`${comic.id}`}>
                         <img src={comic.thumbnail} alt="ultimate war" className="comics__item-img"/>
                         <div className="comics__item-name">{comic.title}</div>
                         <div className="comics__item-price">{comic.price}</div>
-                    </a>
+                    </Link>
                 </li>
             )
         });
