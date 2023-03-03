@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import { Transition } from 'react-transition-group';
 
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
@@ -7,19 +8,38 @@ import useMarvelService from '../../services/MarvelService';
 import './charList.scss';
 
 const CharList = (props) => {
+    const randomOffset = Math.floor(Math.random() * (1300 - 250) + 50);
 
     const [charList, setCharList] = useState([]);
     const [newItemLoading, setNewItemLoading] = useState(false);
-    const [offset, setOffset] = useState(210);
+    const [offset, setOffset] = useState(randomOffset);
     const [charEnded, setCharEnded] = useState(false);
+    const [startAnimation, setStartAnimation] = useState(false);
+
+    const [inProp, setInProp] = useState(false);
+    const duration = 300;
 
     const {loading, error, getAllCharacters} = useMarvelService();
+
+    const defaultStyle = {
+      transition: `all ${duration}ms ease-in-out`,
+      opacity: 0,
+      visibility: 'hidden'
+    }
+    
+    const transitionStyles = {
+        entering: { opacity: 1, visibility: 'visible' },
+        entered:  { opacity: 1, visibility: 'visible' },
+        exiting:  { opacity: 0, visibility: 'hidden' },
+        exited:  { opacity: 0, visibility: 'hidden' },
+    };
 
     useEffect(() => {
         onRequest(offset, true);
     }, []);
 
     const onRequest = (offset, initial) => {
+        setStartAnimation(false);
         initial ? setNewItemLoading(false) : setNewItemLoading(true);
         getAllCharacters(offset).then(onCharListLoaded);
     }
@@ -29,6 +49,7 @@ const CharList = (props) => {
         if (newCharList.length < 9) {
             ended = true;
         }
+        setStartAnimation(true);
 
         setCharList(charList => [...charList, ...newCharList]); //нам важно значение пред. стейта
         setNewItemLoading(newItemLoading => false);
@@ -50,33 +71,32 @@ const CharList = (props) => {
             if (item.thumbnail === 'http://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available.jpg') {
                 imgStyle = { 'objectFit': 'unset' };
             }
-
             return (
                 <li
-                    className="char__item"
-                    tabIndex={0}
-                    ref={el => itemRefs.current[i] = el}
-                    key={item.id}
-                    onClick={() => {
+                className="char__item"
+                tabIndex={0}
+                ref={el => itemRefs.current[i] = el}
+                key={item.id}
+                onClick={() => {
+                    props.onCharSelected(item.id);
+                    focusOnItem(i);
+                }}
+                onKeyPress={(e) => {
+                    if (e.key === ' ' || e.key === "Enter") {
                         props.onCharSelected(item.id);
                         focusOnItem(i);
-                    }}
-                    onKeyPress={(e) => {
-                        if (e.key === ' ' || e.key === "Enter") {
-                            props.onCharSelected(item.id);
-                            focusOnItem(i);
-                        }
-                    }}>
+                    }
+                }}>
                     <img src={item.thumbnail} alt={item.name} style={imgStyle} />
                     <div className="char__name">{item.name}</div>
                 </li>
-            )
+            )       
         });
 
         return (
-            <ul className="char__grid">
+            <>
                 {items}
-            </ul>
+            </>
         )
     }
 
@@ -89,7 +109,16 @@ const CharList = (props) => {
         <div className="char__list">
             {errorMessage}
             {spinner}
-            {items}
+            <Transition timeout={duration} in={startAnimation}>
+                {state => (
+                    <ul className="char__grid" style={{
+                        ...defaultStyle,
+                        ...transitionStyles[state]
+                    }}>
+                        {items}
+                    </ul> 
+                )}
+            </Transition>
             <button
                 className="button button__main button__long"
                 disabled={newItemLoading}

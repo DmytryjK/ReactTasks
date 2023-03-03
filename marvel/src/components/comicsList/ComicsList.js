@@ -1,4 +1,5 @@
 import './comicsList.scss';
+import { Transition } from 'react-transition-group';
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
 import useMarvelService from '../../services/MarvelService';
@@ -10,6 +11,21 @@ const ComicsList = () => {
     const [offset, setOffset] = useState(24);
     const [newLoadingComics, setNewLoadingComics] = useState(false);
     const {loading, error, getAllComics} = useMarvelService();
+
+    const duration = 300;
+
+    const defaultStyle = {
+        transition: `opacity ${duration}ms ease-in-out`,
+        opacity: 0,
+        visibility: 'hidden'
+    }
+
+    const transitionStyles = {
+        entering: { opacity: 1, visibility: 'visible' },
+        entered:  { opacity: 1, visibility: 'visible' },
+        exiting:  { opacity: 0, visibility: 'hidden' },
+        exited:  { opacity: 0, visibility: 'hidden' },
+    };
 
     const getComics = (offset, initial) => {
         initial ? setNewLoadingComics(false) : setNewLoadingComics(true); 
@@ -50,9 +66,17 @@ const ComicsList = () => {
         <div className="comics__list">
             {spinner}
             {errorMessage}
-            <ul className="comics__grid">
-                {items}
-            </ul>
+            <Transition in={!loading} timeout={duration}>
+                {state => (
+                    <ul className="comics__grid" style={{
+                        ...defaultStyle,
+                        ...transitionStyles[state]
+                        }}>
+                        {items}
+                    </ul>
+                )}
+            </Transition>
+            
             <button 
                 className="button button__main button__long"
                 onClick={() => getComics(offset)}
